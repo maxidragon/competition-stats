@@ -1,38 +1,49 @@
 import { CompetitionInfo } from "./interfaces";
-import { wcaApiRequest } from "./request";
+import {
+  wcaApiRequest,
+  WCIF_LIFECYCLE,
+  WCIF_MAJOR_VERSION,
+} from "./request";
+import { Competition } from "./wcif";
 
-export const searchCompetitions = async (name?: string) => {
-  const search = name ? name : "";
+const toIsoDate = (date: Date) =>
+  `${date.getFullYear()}-${(date.getMonth() + 1)
+    .toString()
+    .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
+
+export const searchCompetitions = async (
+  name?: string
+): Promise<CompetitionInfo[]> => {
+  const search = name ?? "";
   try {
-    const today = new Date();
-    let start = "";
-    if (!name || name.length < 1) {
-      start = `${today.getFullYear()}-${(today.getMonth() + 1)
-        .toString()
-        .padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`;
-    }
-    const response = await wcaApiRequest(
-      `competitions?q=${search}&start=${start}&per_page=50&sort=start_date`
+    // Without a search term we only list upcoming competitions.
+    const start = search.length < 1 ? toIsoDate(new Date()) : "";
+    const data = await wcaApiRequest(
+      `competitions?q=${encodeURIComponent(
+        search
+      )}&start=${start}&per_page=50&sort=start_date`
     );
-    const data = await response.json();
-    const competitions = data.filter(
+    if (!Array.isArray(data)) return [];
+    return data.filter(
       (competition: CompetitionInfo) =>
         new Date(competition.start_date).getFullYear() >= 2023
     );
-    return competitions;
   } catch (err) {
-    console.log(err);
-    return null;
+    console.error(err);
+    return [];
   }
 };
 
-export const getWcif = async (id: string) => {
-  try {
-    const response = await wcaApiRequest(`competitions/${id}/wcif/public`);
-    const data = await response.json();
-    return data;
-  } catch (err) {
-    console.log(err);
-    return null;
+export const getWcif = async (id: string): Promise<Competition> => {
+  const wcif = (await wcaApiRequest(
+    `competitions/${encodeURIComponent(id)}/wcif/${WCIF_LIFECYCLE}`
+  )) as Competition;
+
+  const major = Number.parseInt(wcif?.formatVersion ?? "", 10);
+  if (major !== WCIF_MAJOR_VERSION) {
+    throw new Error(
+      `Unsupported WCIF version ${wcif?.formatVersion}, expected v${WCIF_MAJOR_VERSION}.x`
+    );
   }
+  return wcif;
 };

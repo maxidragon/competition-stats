@@ -26,12 +26,17 @@ const SORTable = ({ data }: SORTableProps) => {
                             <Flag code={item.person.countryIso2.toLowerCase()} width="32" />
                         </TableCell>
                         <TableCell>
-                            <Link
-                                href={`${WCA_ORIGIN}/persons/${item.person.wcaId}`}
-                                target="_blank"
-                            >
-                                {item.person.name}
-                            </Link>
+                            {item.person.wcaId ? (
+                                <Link
+                                    href={`${WCA_ORIGIN}/persons/${item.person.wcaId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    {item.person.name}
+                                </Link>
+                            ) : (
+                                item.person.name
+                            )}
                         </TableCell>
                         <TableCell>{item.value}</TableCell>
                     </TableRow>

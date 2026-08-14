@@ -11,31 +11,39 @@ import {
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { WCACompetition } from "../../logic/interfaces";
+import { CompetitionInfo } from "../../logic/interfaces";
 import CompetitionFlagIcon from "../../Components/CompetitionFlagIcon";
 import { searchCompetitions } from "../../logic/competitions";
 
+const SEARCH_DEBOUNCE_MS = 300;
+
 const CompetitionsList = () => {
   const navigate = useNavigate();
-  const [competitions, setCompetitions] = useState<WCACompetition[]>([]);
+  const [competitions, setCompetitions] = useState<CompetitionInfo[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [searchText, setSearchText] = useState<string>("");
 
-  const handleSearch = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchText(event.target.value);
-    await fetchData(event.target.value);
-  };
-
-  const fetchData = async (q?: string) => {
-    setIsLoading(true);
-    const data = await searchCompetitions(q);
-    setIsLoading(false);
-    setCompetitions(data);
   };
 
   useEffect(() => {
-    fetchData();
-  }, [navigate]);
+    // Debounced so we do not fire a request per keystroke, and guarded so a slow
+    // response for an earlier query cannot overwrite a newer one.
+    let stale = false;
+    setIsLoading(true);
+    const timeout = setTimeout(() => {
+      searchCompetitions(searchText).then((data) => {
+        if (stale) return;
+        setCompetitions(data);
+        setIsLoading(false);
+      });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      stale = true;
+      clearTimeout(timeout);
+    };
+  }, [searchText, navigate]);
   return (
     <>
       <Box

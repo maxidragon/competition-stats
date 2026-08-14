@@ -1,12 +1,4 @@
-import { Person } from "@wca/helpers";
-
-export interface WCACompetition {
-  id: string;
-  name: string;
-  website: string;
-  countryIso2: string;
-  country_iso2?: string;
-}
+import { Person } from "./wcif";
 
 export interface CompetitionInfo {
   id: string;
@@ -18,10 +10,10 @@ export interface CompetitionInfo {
 }
 
 export interface SOR {
-    person: Person;
-    value: number;
+  person: Person;
+  value: number;
 }
 
 export interface SORWithPosition extends SOR {
-    position: number;
+  position: number;
 }
