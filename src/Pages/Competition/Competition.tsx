@@ -4,7 +4,7 @@ import { Alert, Box, Paper, Typography } from "@mui/material";
 
 import { getWcif } from "../../logic/competitions";
 import LoadingPage from "../../Components/LoadingPage";
-import { SORWithPosition } from "../../logic/interfaces";
+import { SORResult } from "../../logic/interfaces";
 import { Competition as ICompetition } from "../../logic/wcif";
 import SORTable from "./Components/SORTable";
 import { calculateSor } from "../../logic/sor";
@@ -12,7 +12,7 @@ import { calculateSor } from "../../logic/sor";
 const Competition = () => {
     const { id } = useParams<{ id: string }>();
     const [wcif, setWcif] = useState<ICompetition | null>(null);
-    const [sor, setSor] = useState<SORWithPosition[]>([]);
+    const [sor, setSor] = useState<SORResult>({ eventIds: [], results: [] });
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -59,13 +59,24 @@ const Competition = () => {
 
         }}>
             <Typography variant="h4">{wcif.name}</Typography>
-            {sor.length > 0 ? (
+            {sor.results.length > 0 ? (
                 <>
                     <Typography variant="body2" color="text.secondary">
-                        {sor.length} competitors
+                        {sor.results.length} competitors, {sor.eventIds.length} events.
+                        The columns after the sum are the ranking counted in each event;
+                        a dimmed one was not competed in and counts as one place behind
+                        the last competitor, or ties with them when they did not solve
+                        either.
                     </Typography>
-                    <Paper sx={{ p: 2, maxHeight: "80vh", overflow: "auto" }}>
-                        <SORTable data={sor} />
+                    <Paper
+                        sx={{
+                            p: 2,
+                            maxWidth: "100%",
+                            maxHeight: "80vh",
+                            overflow: "auto",
+                        }}
+                    >
+                        <SORTable data={sor.results} eventIds={sor.eventIds} />
                     </Paper>
                 </>
             ) : (

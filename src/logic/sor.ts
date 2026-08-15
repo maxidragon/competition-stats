@@ -1,5 +1,16 @@
-import { SORWithPosition } from "./interfaces";
-import { Competition, Person, RegistrantId, Round } from "./wcif";
+import { sortEventIds } from "./events";
+import { EventRanking, SORResult, SORWithPosition } from "./interfaces";
+import {
+  Competition,
+  EventId,
+  Person,
+  RegistrantId,
+  ResultValue,
+  Round,
+} from "./wcif";
+
+/** A solved attempt or result. 0 is empty, -1 is DNF and -2 is DNS. */
+const isSuccess = (value: ResultValue): boolean => value > 0;
 
 /**
  * The first round of an event. Normally `{eventId}-r1`, but we fall back to the
@@ -43,45 +54,71 @@ const competitors = (wcif: Competition): Person[] => {
 
 /**
  * Sum of ranks over the first round of every event. A competitor who did not
- * compete in an event scores one worse than the last person who did.
+ * compete in an event scores one worse than the last person who did. The
+ * ranking counted in each event is kept alongside the sum so it can be shown.
  */
-export const calculateSor = (wcif: Competition): SORWithPosition[] => {
+export const calculateSor = (wcif: Competition): SORResult => {
   const people = competitors(wcif);
-  const sums = new Map<RegistrantId, number>(
-    people.map((person) => [person.registrantId, 0])
+  const rankings = new Map<RegistrantId, Record<EventId, EventRanking>>(
+    people.map((person) => [person.registrantId, {}])
   );
+  const eventIds: EventId[] = [];
 
   for (const event of wcif.events) {
     const round = firstRound(event.rounds);
     if (!round) continue;
 
-    const rankings = new Map<RegistrantId, number>();
+    const roundRankings = new Map<RegistrantId, number>();
     let lastRanking = 0;
     for (const result of round.results) {
       // A result with no ranking yet is treated as if it were not there.
       if (result.ranking === null) continue;
-      rankings.set(result.personId, result.ranking);
+      roundRankings.set(result.personId, result.ranking);
       lastRanking = Math.max(lastRanking, result.ranking);
     }
-    if (rankings.size === 0) continue;
+    if (roundRankings.size === 0) continue;
 
+    // Everyone without a successful solve shares the last ranking, so not
+    // competing is worth exactly as much as competing without solving, and the
+    // absentees join that ranking instead of being put behind it.
+    const lastPlaceDidNotSolve = round.results.some(
+      (result) => result.ranking === lastRanking && !isSuccess(result.best)
+    );
+    const absentRanking = lastPlaceDidNotSolve ? lastRanking : lastRanking + 1;
+
+    eventIds.push(event.id);
     for (const person of people) {
-      const ranking = rankings.get(person.registrantId) ?? lastRanking + 1;
-      sums.set(person.registrantId, sums.get(person.registrantId)! + ranking);
+      const ranking = roundRankings.get(person.registrantId);
+      rankings.get(person.registrantId)![event.id] =
+        ranking === undefined
+          ? { ranking: absentRanking, competed: false }
+          : { ranking, competed: true };
     }
   }
 
+  const sortedEventIds = sortEventIds(eventIds);
   const sorted = people
-    .map((person) => ({ person, value: sums.get(person.registrantId)! }))
+    .map((person) => {
+      const personRankings = rankings.get(person.registrantId)!;
+      const value = sortedEventIds.reduce(
+        (sum, eventId) => sum + personRankings[eventId].ranking,
+        0
+      );
+      return { person, value, rankings: personRankings };
+    })
     .sort(
       (a, b) => a.value - b.value || a.person.name.localeCompare(b.person.name)
     );
 
   // Ties share a position, and the next competitor skips the tied places.
-  const sor: SORWithPosition[] = [];
+  const results: SORWithPosition[] = [];
   sorted.forEach((entry, index) => {
     const tied = index > 0 && entry.value === sorted[index - 1].value;
-    sor.push({ ...entry, position: tied ? sor[index - 1].position : index + 1 });
+    results.push({
+      ...entry,
+      position: tied ? results[index - 1].position : index + 1,
+    });
   });
-  return sor;
+
+  return { eventIds: sortedEventIds, results };
 };
