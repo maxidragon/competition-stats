@@ -19,6 +19,15 @@ const isSuccess = (value: ResultValue): boolean => value > 0;
 const firstRound = (rounds: Round[]): Round | undefined =>
   rounds.find((round) => round.id.endsWith("-r1")) ?? rounds[0];
 
+/** Rounds in competition order, even if the WCIF array is not sorted. */
+const roundsInOrder = (rounds: Round[]): Round[] =>
+  [...rounds].sort((a, b) => {
+    const aNumber = Number(a.id.match(/-r(\d+)$/)?.[1]);
+    const bNumber = Number(b.id.match(/-r(\d+)$/)?.[1]);
+
+    return aNumber - bNumber;
+  });
+
 /**
  * People who took part in the competition, i.e. who have a result in at least
  * one round. WCA Live drops no-shows from a round entirely rather than storing
@@ -53,9 +62,10 @@ const competitors = (wcif: Competition): Person[] => {
 };
 
 /**
- * Sum of ranks over the first round of every event. A competitor who did not
- * compete in an event scores one worse than the last person who did. The
- * ranking counted in each event is kept alongside the sum so it can be shown.
+ * Sum of ranks over every event. Each competitor gets their ranking from the
+ * last round they reached. A competitor who did not compete in an event scores
+ * one worse than the last person in its first round. The ranking counted in
+ * each event is kept alongside the sum so it can be shown.
  */
 export const calculateSor = (wcif: Competition): SORResult => {
   const people = competitors(wcif);
@@ -68,15 +78,15 @@ export const calculateSor = (wcif: Competition): SORResult => {
     const round = firstRound(event.rounds);
     if (!round) continue;
 
-    const roundRankings = new Map<RegistrantId, number>();
+    const firstRoundRankings = new Map<RegistrantId, number>();
     let lastRanking = 0;
     for (const result of round.results) {
       // A result with no ranking yet is treated as if it were not there.
       if (result.ranking === null) continue;
-      roundRankings.set(result.personId, result.ranking);
+      firstRoundRankings.set(result.personId, result.ranking);
       lastRanking = Math.max(lastRanking, result.ranking);
     }
-    if (roundRankings.size === 0) continue;
+    if (firstRoundRankings.size === 0) continue;
 
     // Everyone without a successful solve shares the last ranking, so not
     // competing is worth exactly as much as competing without solving, and the
@@ -86,9 +96,21 @@ export const calculateSor = (wcif: Competition): SORResult => {
     );
     const absentRanking = lastPlaceDidNotSolve ? lastRanking : lastRanking + 1;
 
+    // Advancing competitors use their placement in the latest round for which
+    // they have a ranking. Iterating from the first round to the final lets a
+    // later result replace an earlier one for the same person.
+    const latestRoundRankings = new Map<RegistrantId, number>();
+    for (const eventRound of roundsInOrder(event.rounds)) {
+      for (const result of eventRound.results) {
+        if (result.ranking !== null) {
+          latestRoundRankings.set(result.personId, result.ranking);
+        }
+      }
+    }
+
     eventIds.push(event.id);
     for (const person of people) {
-      const ranking = roundRankings.get(person.registrantId);
+      const ranking = latestRoundRankings.get(person.registrantId);
       rankings.get(person.registrantId)![event.id] =
         ranking === undefined
           ? { ranking: absentRanking, competed: false }
