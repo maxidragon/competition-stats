@@ -1,7 +1,7 @@
 /**
  * WCIF v2 types.
  *
- * Based on the `latest` WCIF specification:
+ * Based on the WCIF v2.2 specification:
  * https://github.com/thewca/wcif/blob/latest/specification.md
  *
  * These are hand-written because `@wca/helpers` (1.1.7, the newest release) still
@@ -252,6 +252,7 @@ export interface Activity {
   startTime: DateTime;
   endTime: DateTime;
   childActivities: Activity[];
-  scrambleSetId: number | null;
+  /** Optional in the spec, and omitted by the WCA website when unset. */
+  scrambleSetId?: number | null;
   extensions: Extension[];
 }

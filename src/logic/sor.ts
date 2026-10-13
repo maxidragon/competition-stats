@@ -12,21 +12,63 @@ import {
 /** A solved attempt or result. 0 is empty, -1 is DNF and -2 is DNS. */
 const isSuccess = (value: ResultValue): boolean => value > 0;
 
+const roundNumber = (round: Round): number =>
+  Number(round.id.match(/-r(\d+)$/)?.[1]);
+
 /**
- * The first round of an event. Normally `{eventId}-r1`, but we fall back to the
- * first round in the list so events with an unusual round layout still count.
+ * Rounds whose results are ranked together. Usually a single round, but the
+ * rounds of a Dual Round (WCIF `linkedRounds`, Regulation 9v) form one stage.
  */
-const firstRound = (rounds: Round[]): Round | undefined =>
-  rounds.find((round) => round.id.endsWith("-r1")) ?? rounds[0];
+type Stage = Round[];
 
-/** Rounds in competition order, even if the WCIF array is not sorted. */
-const roundsInOrder = (rounds: Round[]): Round[] =>
-  [...rounds].sort((a, b) => {
-    const aNumber = Number(a.id.match(/-r(\d+)$/)?.[1]);
-    const bNumber = Number(b.id.match(/-r(\d+)$/)?.[1]);
+/**
+ * Groups rounds into stages in competition order, even if the WCIF array is
+ * not sorted.
+ */
+const stagesInOrder = (rounds: Round[]): Stage[] => {
+  const sorted = [...rounds].sort((a, b) => roundNumber(a) - roundNumber(b));
+  const stages: Stage[] = [];
+  const stageByRoundId = new Map<string, Stage>();
+  for (const round of sorted) {
+    const linked = round.linkedRounds?.find((id) => stageByRoundId.has(id));
+    const stage = linked ? stageByRoundId.get(linked)! : [];
+    if (!linked) stages.push(stage);
+    stage.push(round);
+    stageByRoundId.set(round.id, stage);
+  }
+  return stages;
+};
 
-    return aNumber - bNumber;
-  });
+/** A ranked result in a stage. */
+interface StageResult {
+  personId: RegistrantId;
+  ranking: number;
+  /** Whether the competitor has a successful result in any round of the stage. */
+  solved: boolean;
+}
+
+/**
+ * Rankings in a stage. A result with no ranking yet is treated as if it were
+ * not there. In a Dual Round a competitor is ranked by the better of their
+ * results from either round (Regulation 9v4), and the WCA writes that combined
+ * ranking into each linked round, so a competitor appears once with the best
+ * ranking they have in the stage.
+ */
+const stageResults = (stage: Stage): StageResult[] => {
+  const byPerson = new Map<RegistrantId, StageResult>();
+  for (const round of stage) {
+    for (const result of round.results) {
+      if (result.ranking === null) continue;
+      const current = byPerson.get(result.personId);
+      byPerson.set(result.personId, {
+        personId: result.personId,
+        ranking: Math.min(result.ranking, current?.ranking ?? Infinity),
+        solved: isSuccess(result.best) || (current?.solved ?? false),
+      });
+    }
+  }
+  return [...byPerson.values()];
+};
 
 /**
  * People who took part in the competition, i.e. who have a result in at least
@@ -75,36 +117,27 @@ export const calculateSor = (wcif: Competition): SORResult => {
   const eventIds: EventId[] = [];
 
   for (const event of wcif.events) {
-    const round = firstRound(event.rounds);
-    if (!round) continue;
+    const stages = stagesInOrder(event.rounds).map(stageResults);
+    const firstStage = stages[0] ?? [];
+    if (firstStage.length === 0) continue;
 
-    const firstRoundRankings = new Map<RegistrantId, number>();
-    let lastRanking = 0;
-    for (const result of round.results) {
-      // A result with no ranking yet is treated as if it were not there.
-      if (result.ranking === null) continue;
-      firstRoundRankings.set(result.personId, result.ranking);
-      lastRanking = Math.max(lastRanking, result.ranking);
-    }
-    if (firstRoundRankings.size === 0) continue;
+    const lastRanking = Math.max(...firstStage.map((entry) => entry.ranking));
 
     // Everyone without a successful solve shares the last ranking, so not
     // competing is worth exactly as much as competing without solving, and the
     // absentees join that ranking instead of being put behind it.
-    const lastPlaceDidNotSolve = round.results.some(
-      (result) => result.ranking === lastRanking && !isSuccess(result.best)
+    const lastPlaceDidNotSolve = firstStage.some(
+      (entry) => entry.ranking === lastRanking && !entry.solved
     );
     const absentRanking = lastPlaceDidNotSolve ? lastRanking : lastRanking + 1;
 
-    // Advancing competitors use their placement in the latest round for which
-    // they have a ranking. Iterating from the first round to the final lets a
+    // Advancing competitors use their placement in the latest stage for which
+    // they have a ranking. Iterating from the first stage to the final lets a
     // later result replace an earlier one for the same person.
     const latestRoundRankings = new Map<RegistrantId, number>();
-    for (const eventRound of roundsInOrder(event.rounds)) {
-      for (const result of eventRound.results) {
-        if (result.ranking !== null) {
-          latestRoundRankings.set(result.personId, result.ranking);
-        }
+    for (const stage of stages) {
+      for (const entry of stage) {
+        latestRoundRankings.set(entry.personId, entry.ranking);
       }
     }
 

@@ -1,9 +1,5 @@
 import { CompetitionInfo } from "./interfaces";
-import {
-  wcaApiRequest,
-  WCIF_LIFECYCLE,
-  WCIF_MAJOR_VERSION,
-} from "./request";
+import { wcaApiRequest, WCIF_MAJOR_VERSION } from "./request";
 import { Competition } from "./wcif";
 
 const toIsoDate = (date: Date) =>
@@ -36,7 +32,7 @@ export const searchCompetitions = async (
 
 export const getWcif = async (id: string): Promise<Competition> => {
   const wcif = (await wcaApiRequest(
-    `competitions/${encodeURIComponent(id)}/wcif/${WCIF_LIFECYCLE}`
+    `competitions/${encodeURIComponent(id)}/wcif/version/${WCIF_MAJOR_VERSION}`
   )) as Competition;
 
   const major = Number.parseInt(wcif?.formatVersion ?? "", 10);
