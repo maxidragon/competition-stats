@@ -1,4 +1,6 @@
+import { competitors } from "./competitors";
 import { sortEventIds } from "./events";
+import { rankWithTies } from "./rank";
 import type {
   Competition,
   EventId,
@@ -97,46 +99,17 @@ const stageResults = (stage: Stage): StageResult[] => {
 };
 
 /**
- * People who took part in the competition, i.e. who have a result in at least
- * one round. WCA Live drops no-shows from a round entirely rather than storing
- * an empty result for them, so "has no result anywhere" means "did not attend".
- */
-const attendees = (wcif: Competition): Set<RegistrantId> => {
-  const ids = new Set<RegistrantId>();
-  for (const event of wcif.events) {
-    for (const round of event.rounds) {
-      for (const result of round.results) {
-        ids.add(result.personId);
-      }
-    }
-  }
-  return ids;
-};
-
-/**
- * Competitors to rank: accepted registrations of people who registered as
- * competitors and who actually showed up. Everyone else (delegates and
- * organizers without a registration, staff-only registrations, pending and
- * deleted registrations, and registered no-shows) is left out.
- */
-const competitors = (wcif: Competition): Person[] => {
-  const present = attendees(wcif);
-  return wcif.persons.filter(
-    (person) =>
-      person.registration?.status === "accepted" &&
-      person.registration.isCompeting &&
-      present.has(person.registrantId)
-  );
-};
-
-/**
  * Sum of ranks over every event. Each competitor gets their ranking from the
  * last round they reached. A competitor who did not compete in an event scores
  * one worse than the last person in its first round. The ranking counted in
  * each event is kept alongside the sum so it can be shown.
  */
 export const calculateSor = (wcif: Competition): SORResult => {
-  const people = competitors(wcif);
+  // Accepted registrations of people who registered as competitors and who
+  // actually showed up. Everyone else (delegates and organizers without a
+  // registration, staff-only registrations, pending and deleted registrations,
+  // and registered no-shows) is left out.
+  const people = competitors(wcif, { attendedOnly: true });
   const rankings = new Map<RegistrantId, Record<EventId, EventRanking>>(
     people.map((person) => [person.registrantId, {}])
   );
@@ -192,14 +165,10 @@ export const calculateSor = (wcif: Competition): SORResult => {
     );
 
   // Ties share a position, and the next competitor skips the tied places.
-  const results: SORWithPosition[] = [];
-  sorted.forEach((entry, index) => {
-    const tied = index > 0 && entry.value === sorted[index - 1].value;
-    results.push({
-      ...entry,
-      position: tied ? results[index - 1].position : index + 1,
-    });
-  });
+  const results: SORWithPosition[] = rankWithTies(
+    sorted,
+    (previous, current) => previous.value === current.value
+  ).map(({ row, position }) => ({ ...row, position }));
 
   return { eventIds: sortedEventIds, results };
 };
