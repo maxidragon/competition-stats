@@ -1,13 +1,13 @@
 import { competitors } from "./competitors";
 import { sortEventIds } from "./events";
 import { rankWithTies } from "./rank";
+import { stageRankings, stagesInOrder, type Stage } from "./stages";
 import type {
   Competition,
   EventId,
   Person,
   RegistrantId,
   ResultValue,
-  Round,
 } from "./wcif";
 
 export interface EventRanking {
@@ -40,33 +40,6 @@ export interface SORResult {
 /** A solved attempt or result. 0 is empty, -1 is DNF and -2 is DNS. */
 const isSuccess = (value: ResultValue): boolean => value > 0;
 
-const roundNumber = (round: Round): number =>
-  Number(round.id.match(/-r(\d+)$/)?.[1]);
-
-/**
- * Rounds whose results are ranked together. Usually a single round, but the
- * rounds of a Dual Round (WCIF `linkedRounds`, Regulation 9v) form one stage.
- */
-type Stage = Round[];
-
-/**
- * Groups rounds into stages in competition order, even if the WCIF array is
- * not sorted.
- */
-const stagesInOrder = (rounds: Round[]): Stage[] => {
-  const sorted = [...rounds].sort((a, b) => roundNumber(a) - roundNumber(b));
-  const stages: Stage[] = [];
-  const stageByRoundId = new Map<string, Stage>();
-  for (const round of sorted) {
-    const linked = round.linkedRounds?.find((id) => stageByRoundId.has(id));
-    const stage = linked ? stageByRoundId.get(linked)! : [];
-    if (!linked) stages.push(stage);
-    stage.push(round);
-    stageByRoundId.set(round.id, stage);
-  }
-  return stages;
-};
-
 /** A ranked result in a stage. */
 interface StageResult {
   personId: RegistrantId;
@@ -76,26 +49,21 @@ interface StageResult {
 }
 
 /**
- * Rankings in a stage. A result with no ranking yet is treated as if it were
- * not there. In a Dual Round a competitor is ranked by the better of their
- * results from either round (Regulation 9v4), and the WCA writes that combined
- * ranking into each linked round, so a competitor appears once with the best
- * ranking they have in the stage.
+ * Rankings in a stage (see `stageRankings`), with whether each competitor
+ * solved anything in a ranked result of the stage.
  */
 const stageResults = (stage: Stage): StageResult[] => {
-  const byPerson = new Map<RegistrantId, StageResult>();
+  const solved = new Set<RegistrantId>();
   for (const round of stage) {
     for (const result of round.results) {
-      if (result.ranking === null) continue;
-      const current = byPerson.get(result.personId);
-      byPerson.set(result.personId, {
-        personId: result.personId,
-        ranking: Math.min(result.ranking, current?.ranking ?? Infinity),
-        solved: isSuccess(result.best) || (current?.solved ?? false),
-      });
+      if (result.ranking !== null && isSuccess(result.best)) solved.add(result.personId);
     }
   }
-  return [...byPerson.values()];
+  return [...stageRankings(stage)].map(([personId, ranking]) => ({
+    personId,
+    ranking,
+    solved: solved.has(personId),
+  }));
 };
 
 /**
