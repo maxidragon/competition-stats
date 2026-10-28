@@ -19,6 +19,8 @@ export interface Column<T> {
    * and rows it compares as equal share a position.
    */
   compare?: (a: T, b: T) => number;
+  /** Direction of the first click on the header. Defaults to descending. */
+  firstDir?: SortDir;
   render: (row: T) => ReactNode;
   /** Extra classes for the column's body cells. */
   cellClassName?: string;
@@ -63,7 +65,8 @@ function SortIcon({ columnKey, sortKey, sortDir }: { columnKey: string; sortKey:
 
 /**
  * A sortable table of per-competitor stats. Clicking a sortable header sorts
- * by it, descending first; clicking it again flips the direction. Rows that
+ * by it, in the column's first direction (descending unless it says
+ * otherwise); clicking it again flips the direction. Rows that
  * compare as equal keep their input order. The header stays visible while
  * the table scrolls, and wide tables scroll sideways.
  */
@@ -85,11 +88,11 @@ export default function StatsTable<T>({
         return rankWithTies(sorted, (previous, current) => compare(previous, current) === 0);
     }, [rows, columns, sort]);
 
-    const toggleSort = (key: string) =>
+    const toggleSort = (column: Column<T>) =>
         setSort((current) =>
-            current.key === key
-                ? { key, dir: current.dir === "asc" ? "desc" : "asc" }
-                : { key, dir: "desc" }
+            current.key === column.key
+                ? { key: column.key, dir: current.dir === "asc" ? "desc" : "asc" }
+                : { key: column.key, dir: column.firstDir ?? "desc" }
         );
 
     return (
@@ -124,7 +127,7 @@ export default function StatsTable<T>({
                                     >
                                         <button
                                             type="button"
-                                            onClick={() => toggleSort(column.key)}
+                                            onClick={() => toggleSort(column)}
                                             className={`inline-flex items-center gap-1.5 uppercase tracking-wider cursor-pointer ${ALIGN_FLEX_CLASS[align]}`}
                                         >
                                             {column.header} <SortIcon columnKey={column.key} sortKey={sort.key} sortDir={sort.dir} />
