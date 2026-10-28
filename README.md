@@ -26,11 +26,14 @@ lives on in this repository.
 
 ### Kinch
 
-For every event, a competitor scores 100 × the best result at the competition ÷ their own best.
-Most events use the average; 3BLD, 4BLD, 5BLD and FMC use the better of single and mean.
-Multi-blind uses points + (3600 − seconds) / 3600. An event where nobody has an average is
-scored on the single. A competitor with no valid result in an event scores 0 there. The overall
-score is the mean over every event held; higher is better.
+Each round is scored against that round's best: 100 × the best result in the round ÷ yours.
+Most events use the average; 3BLD, 4BLD, 5BLD, FMC and Multi-blind use the single, with
+Multi-blind compared on points + (3600 − seconds) / 3600. A round where nobody has an average is
+scored on the single, and no valid result scores 0. Dual Rounds count as one round. Only the
+last round a competitor reached counts, and reaching a round guarantees at least what the last
+person to advance into it scored in the round before: a score `k` in a round with that floor
+`p` becomes `k × (1 − p) + p`. The overall score is the mean over every event held, counting
+events not entered as 0; higher is better.
 
 Sum of ranks and Kinch need round results, which the WCA only serves in the WCIF while a
 competition is recent.

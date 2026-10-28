@@ -46,7 +46,7 @@ const columnsFor = (eventIds: EventId[]): Column<KinchRow>[] => [
     ),
 ];
 
-/** Kinch ranks against the best results at this competition. */
+/** Kinch per competitor, scoring each round against its own best. */
 export default function KinchView() {
     const { wcif } = useCompetition();
     const { eventIds, results } = useMemo(() => calculateKinch(wcif), [wcif]);
@@ -64,10 +64,12 @@ export default function KinchView() {
     return (
         <div className="flex flex-col gap-4">
             <p className="text-text-dim text-sm">
-                In each event you score 100 × the best result at this competition ÷ yours: on the
-                average for most events, on the better of single and mean for blindfolded events and
-                Fewest Moves, and on points and time for Multi-Blind. No result scores 0. Your Kinch
-                is the mean over all {eventIds.length} events held.
+                Each round is scored against that round&apos;s best: 100 × the best result ÷ yours.
+                Most events use the average; blindfolded events and Fewest Moves use the single,
+                and Multi-Blind uses points and time. No result scores 0. Only the last round you
+                reached counts, and reaching a round guarantees you at least what the last person
+                to advance into it scored in the round before. Your Kinch is the mean over all{" "}
+                {eventIds.length} events held.
             </p>
             <StatsTable
                 rows={results}
