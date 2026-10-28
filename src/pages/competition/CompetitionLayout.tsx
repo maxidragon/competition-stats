@@ -12,6 +12,7 @@ import type { CompetitionContext } from "./useCompetition";
  */
 const TABS: { path: string; label: string }[] = [
     { path: "", label: "Solves" },
+    { path: "sor", label: "Sum of ranks" },
 ];
 
 /** The outcome of loading one competition, kept with the id it belongs to. */
