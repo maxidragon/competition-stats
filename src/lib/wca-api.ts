@@ -1,4 +1,16 @@
-import type { ApiCompetition, Wcif } from "./types";
+import type { Competition } from "./wcif";
+
+/** A competition as returned by the WCA API's competition search. */
+export interface ApiCompetition {
+  id: string;
+  name: string;
+  city: string;
+  country_iso2: string;
+  start_date: string;
+  end_date: string;
+  competitor_limit: number;
+  url: string;
+}
 
 const WCA_ORIGIN = "https://www.worldcubeassociation.org";
 
@@ -36,14 +48,14 @@ export const fetchSearchCompetition = async (
 // unversioned `/wcif/public` still serves v1, which the WCA is deprecating.
 const WCIF_MAJOR_VERSION = 2;
 
-export const fetchWcif = async (competitionId: string): Promise<Wcif> => {
+export const fetchWcif = async (competitionId: string): Promise<Competition> => {
   const response = await fetch(
     `${WCA_ORIGIN}/api/v0/competitions/${competitionId}/wcif/version/${WCIF_MAJOR_VERSION}`,
   );
   if (!response.ok) {
     throw new Error(`Failed to fetch WCIF: ${response.status}`);
   }
-  const wcif: Wcif = await response.json();
+  const wcif: Competition = await response.json();
   if (!wcif.formatVersion?.startsWith(`${WCIF_MAJOR_VERSION}.`)) {
     throw new Error(`Unsupported WCIF format version: ${wcif.formatVersion}`);
   }

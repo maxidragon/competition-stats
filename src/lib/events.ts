@@ -1,4 +1,4 @@
-import { EventId } from "./wcif";
+import type { EventId } from "./wcif";
 
 /**
  * Official WCA event order, with a full name and a short label for table

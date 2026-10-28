@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchSearchCompetition } from "../lib/api";
-import type { ApiCompetition } from "../lib/types";
+import { fetchSearchCompetition, type ApiCompetition } from "../lib/wca-api";
 
 export default function CompetitionSearch() {
     const [query, setQuery] = useState("");
