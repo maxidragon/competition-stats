@@ -155,3 +155,119 @@ export const mixedCompetition = competition({
     event("555", [round("555-r1", [])]),
   ],
 });
+
+/** Registrant ids in `kinchCompetition`. */
+export const KINCH = {
+  kim: 1,
+  lou: 2,
+  max: 3,
+  nia: 4,
+} as const;
+
+/**
+ * The events Kinch scores in their own way:
+ *
+ * - 6x6x6: best-of-2 only, so nobody has an average and it scores on singles.
+ *   Kim 110.00, Lou 137.50, Max DNF, Nia 220.00.
+ * - 3x3x3 Blindfolded: Lou has the best single (24.00) but no mean, Kim the
+ *   best mean (32.00), Max a mean (64.00) that scores better than his single.
+ * - 3x3x3 Fewest Moves: Lou has the best single (20) but no mean, Max the best
+ *   mean (24.00) with a worse single.
+ * - 3x3x3 Multi-Blind: Kim 6/7 in 30:00 (5 points), Lou 2/2 with an unknown
+ *   time, Max an old-format value that does not count.
+ *
+ * Nia only competed in 6x6x6.
+ */
+export const kinchCompetition = competition({
+  id: "KinchCasesOpen2026",
+  name: "Kinch Cases Open 2026",
+  persons: [
+    person({ registrantId: KINCH.kim, name: "Kim Koala", countryIso2: "PL" }),
+    person({ registrantId: KINCH.lou, name: "Lou Lynx", countryIso2: "DE" }),
+    person({ registrantId: KINCH.max, name: "Max Moose", countryIso2: "FR" }),
+    person({ registrantId: KINCH.nia, name: "Nia Newt", countryIso2: "ES" }),
+  ],
+  events: [
+    event("333bf", [
+      round(
+        "333bf-r1",
+        [
+          result(KINCH.lou, [2400, -1, -1], { ranking: 1, average: -1 }),
+          result(KINCH.kim, [3000, 3200, 3400], { ranking: 2, average: 3200 }),
+          result(KINCH.max, [6000, 6400, 6800], { ranking: 3, average: 6400 }),
+        ],
+        { format: "3" }
+      ),
+    ]),
+    event("333fm", [
+      round(
+        "333fm-r1",
+        [
+          result(KINCH.lou, [20, -1, 30], { ranking: 1, average: -1 }),
+          result(KINCH.max, [24, 24, 24], { ranking: 2, average: 2400 }),
+          result(KINCH.kim, [25, 30, 35], { ranking: 3, average: 3000 }),
+        ],
+        { format: "m" }
+      ),
+    ]),
+    event("333mbf", [
+      round(
+        "333mbf-r1",
+        [
+          // 99 - 5 = 94 | 01800 seconds | 1 missed.
+          result(KINCH.kim, [940180001], { ranking: 1 }),
+          // 99 - 2 = 97 | 99999, unknown time | 0 missed.
+          result(KINCH.lou, [979999900], { ranking: 2 }),
+          // Old format: 1 | SS = 99 - solved | AA attempted | TTTTT seconds.
+          result(KINCH.max, [1970203600], { ranking: 3 }),
+        ],
+        { format: "1" }
+      ),
+    ]),
+    event("666", [
+      round(
+        "666-r1",
+        [
+          result(KINCH.kim, [12000, 11000], { ranking: 1 }),
+          result(KINCH.lou, [-1, 13750], { ranking: 2 }),
+          result(KINCH.nia, [22000, -1], { ranking: 3 }),
+          result(KINCH.max, [-1, -1], { ranking: 4 }),
+        ],
+        { format: "2" }
+      ),
+    ]),
+  ],
+});
+
+/**
+ * Two competitors whose Kinch ties exactly, listed out of name order, and a
+ * third behind them.
+ *
+ * 3x3x3 averages: Oz 10.00, Pia 20.00, Quinn 40.00.
+ * 2x2x2 averages: Pia 4.00, Oz 8.00, Quinn 8.00.
+ */
+export const kinchTiesCompetition = competition({
+  id: "KinchTiesOpen2026",
+  name: "Kinch Ties Open 2026",
+  persons: [
+    person({ registrantId: 1, name: "Pia Puffin" }),
+    person({ registrantId: 2, name: "Oz Otter" }),
+    person({ registrantId: 3, name: "Quinn Quail" }),
+  ],
+  events: [
+    event("333", [
+      round("333-r1", [
+        result(2, [1000, 1000, 1000, 1000, 1000], { ranking: 1, average: 1000 }),
+        result(1, [2000, 2000, 2000, 2000, 2000], { ranking: 2, average: 2000 }),
+        result(3, [4000, 4000, 4000, 4000, 4000], { ranking: 3, average: 4000 }),
+      ]),
+    ]),
+    event("222", [
+      round("222-r1", [
+        result(1, [400, 400, 400, 400, 400], { ranking: 1, average: 400 }),
+        result(2, [800, 800, 800, 800, 800], { ranking: 2, average: 800 }),
+        result(3, [800, 800, 800, 800, 800], { ranking: 2, average: 800 }),
+      ]),
+    ]),
+  ],
+});
