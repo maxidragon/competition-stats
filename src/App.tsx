@@ -3,6 +3,7 @@ import HomePage from "./pages/HomePage";
 import CompetitionLayout from "./pages/competition/CompetitionLayout";
 import SolvesView from "./pages/competition/SolvesView";
 import SumOfRanksView from "./pages/competition/SumOfRanksView";
+import KinchView from "./pages/competition/KinchView";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/competition/:competitionId" element={<CompetitionLayout />}>
           <Route index element={<SolvesView />} />
           <Route path="sor" element={<SumOfRanksView />} />
+          <Route path="kinch" element={<KinchView />} />
         </Route>
       </Routes>
     </HashRouter>
