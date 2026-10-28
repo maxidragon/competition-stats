@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchWcif } from "../lib/api";
-import type { Wcif } from "../lib/types";
+import { fetchWcif } from "../lib/wca-api";
+import type { Competition } from "../lib/wcif";
 
 type SortKey = "name" | "events" | "completed" | "attempted";
 type SortDir = "asc" | "desc";
@@ -27,7 +27,7 @@ function SortIcon({ columnKey, sortKey, sortDir }: { columnKey: SortKey; sortKey
 
 export default function CompetitionPage() {
     const { competitionId } = useParams<{ competitionId: string }>();
-    const [wcif, setWcif] = useState<Wcif | null>(null);
+    const [wcif, setWcif] = useState<Competition | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [sortKey, setSortKey] = useState<SortKey>("completed");
