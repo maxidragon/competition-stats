@@ -1,73 +1,43 @@
-# React + TypeScript + Vite
+# Competition Stats
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Stats for a single WCA competition, computed in the browser from the competition's public
+WCIF v2. Search for a competition, open it, and read the numbers.
 
-Currently, two official plugins are available:
+Live: https://maxidragon.github.io/competition-stats/
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Views
 
-## React Compiler
+### Solves
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+How many attempts each competitor made. An attempt counts as attempted when it is not empty,
+and as completed when it is a successful result. Only competitors with an accepted registration
+are listed.
 
-## Expanding the ESLint configuration
+### Sum of ranks (coming soon)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+For every event, each competitor gets their place in the ranking of the last round they reached.
+A competitor who did not compete in an event counts as one place behind the last competitor of
+its first round, or ties with the competitors there who did not solve. Dual Rounds are ranked as
+one stage. The sum over all events gives the overall ranking; lower is better.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Kinch (coming soon)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+For every event, a competitor scores 100 × the best result at the competition ÷ their own best.
+Most events use the average; 3BLD, 4BLD, 5BLD and FMC use the better of single and mean.
+Multi-blind uses points + (3600 − seconds) / 3600. A competitor with no valid result in an event
+scores 0 there. The overall score is the mean over every event held; higher is better.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Development
+
+```sh
+npm install
+npm run dev      # start the dev server
+npm run build    # type-check and build into dist/
+npm run lint     # run ESLint
+npm run preview  # serve the built dist/ locally
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Deploy
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Every push to `main` builds the app and publishes `dist/` to the `gh-pages` branch, which
+GitHub Pages serves (see `.github/workflows/deploy.yml`).
