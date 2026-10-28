@@ -13,19 +13,27 @@ How many attempts each competitor made. An attempt counts as attempted when it i
 and as completed when it is a successful result. Only competitors with an accepted registration
 are listed.
 
-### Sum of ranks (coming soon)
+### Sum of ranks
 
 For every event, each competitor gets their place in the ranking of the last round they reached.
 A competitor who did not compete in an event counts as one place behind the last competitor of
 its first round, or ties with the competitors there who did not solve. Dual Rounds are ranked as
-one stage. The sum over all events gives the overall ranking; lower is better.
+one stage. The sum over all events gives the overall ranking; lower is better. Only competitors
+who registered to compete and have a result in at least one round are ranked.
 
-### Kinch (coming soon)
+This view used to be a separate app, [sor](https://github.com/maxidragon/sor), whose history
+lives on in this repository.
+
+### Kinch
 
 For every event, a competitor scores 100 × the best result at the competition ÷ their own best.
 Most events use the average; 3BLD, 4BLD, 5BLD and FMC use the better of single and mean.
-Multi-blind uses points + (3600 − seconds) / 3600. A competitor with no valid result in an event
-scores 0 there. The overall score is the mean over every event held; higher is better.
+Multi-blind uses points + (3600 − seconds) / 3600. An event where nobody has an average is
+scored on the single. A competitor with no valid result in an event scores 0 there. The overall
+score is the mean over every event held; higher is better.
+
+Sum of ranks and Kinch need round results, which the WCA only serves in the WCIF while a
+competition is recent.
 
 ## Development
 
@@ -34,6 +42,7 @@ npm install
 npm run dev      # start the dev server
 npm run build    # type-check and build into dist/
 npm run lint     # run ESLint
+npm test         # run the unit tests (Vitest)
 npm run preview  # serve the built dist/ locally
 ```
 
