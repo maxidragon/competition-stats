@@ -38,6 +38,12 @@ events not entered as 0; higher is better.
 Sum of ranks and Kinch need round results, which the WCA only serves in the WCIF while a
 competition is recent.
 
+### Hide podium finishers
+
+A checkbox above the views hides everyone who placed in the top three of an event's final with a
+successful result. It only removes rows: sum of ranks and Kinch keep the positions and numbers
+of the full field, while Solves numbers the rows it shows.
+
 ## Development
 
 ```sh

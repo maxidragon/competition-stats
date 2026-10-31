@@ -48,9 +48,14 @@ const columnsFor = (eventIds: EventId[]): Column<KinchRow>[] => [
 
 /** Kinch per competitor, scoring each round against its own best. */
 export default function KinchView() {
-    const { wcif } = useCompetition();
+    const { wcif, isVisible } = useCompetition();
     const { eventIds, results } = useMemo(() => calculateKinch(wcif), [wcif]);
     const columns = useMemo(() => columnsFor(eventIds), [eventIds]);
+    // Filtered after scoring, so hiding someone changes no position or score.
+    const rows = useMemo(
+        () => results.filter(({ person }) => isVisible(person)),
+        [results, isVisible]
+    );
 
     if (results.length === 0) {
         return (
@@ -72,7 +77,7 @@ export default function KinchView() {
                 {eventIds.length} events held.
             </p>
             <StatsTable
-                rows={results}
+                rows={rows}
                 columns={columns}
                 rowKey={({ person }) => person.wcaUserId}
                 initialSort={{ key: "kinch", dir: "desc" }}

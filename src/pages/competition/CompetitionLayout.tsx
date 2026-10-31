@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Outlet, useParams } from "react-router-dom";
 import { competitors } from "../../lib/competitors";
+import { podiumFinishers } from "../../lib/podium";
 import { fetchWcif } from "../../lib/wca-api";
-import type { Competition } from "../../lib/wcif";
+import type { Competition, RegistrantId } from "../../lib/wcif";
 import type { CompetitionContext } from "./useCompetition";
 
 /**
@@ -24,6 +25,7 @@ type Loaded =
 export default function CompetitionLayout() {
     const { competitionId } = useParams<{ competitionId: string }>();
     const [loaded, setLoaded] = useState<Loaded | null>(null);
+    const [hidePodium, setHidePodium] = useState(false);
 
     useEffect(() => {
         if (!competitionId) return;
@@ -52,7 +54,17 @@ export default function CompetitionLayout() {
         () => (wcif ? competitors(wcif, { attendedOnly: false }).length : 0),
         [wcif]
     );
-    const context = useMemo<CompetitionContext | null>(() => (wcif ? { wcif } : null), [wcif]);
+    const podium = useMemo(() => (wcif ? podiumFinishers(wcif) : new Set<RegistrantId>()), [wcif]);
+    const context = useMemo<CompetitionContext | null>(
+        () =>
+            wcif
+                ? {
+                      wcif,
+                      isVisible: ({ registrantId }) => !hidePodium || !podium.has(registrantId),
+                  }
+                : null,
+        [wcif, podium, hidePodium]
+    );
 
     if (!competition) {
         return (
@@ -120,6 +132,18 @@ export default function CompetitionLayout() {
                     </NavLink>
                 ))}
             </nav>
+
+            {podium.size > 0 && (
+                <label className="mb-4 inline-flex items-center gap-2 text-sm text-text-muted cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={hidePodium}
+                        onChange={(event) => setHidePodium(event.target.checked)}
+                        className="accent-primary [color-scheme:dark]"
+                    />
+                    Hide podium finishers
+                </label>
+            )}
 
             <Outlet context={context} />
         </div>

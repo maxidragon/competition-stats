@@ -8,9 +8,14 @@ const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ?
 
 /** Sum of ranks: every competitor's rankings added up over all events. */
 export default function SumOfRanksView() {
-    const { wcif } = useCompetition();
+    const { wcif, isVisible } = useCompetition();
     const { eventIds, results } = useMemo(() => calculateSor(wcif), [wcif]);
     const columns = useMemo(() => sorColumns(eventIds), [eventIds]);
+    // Filtered after scoring, so hiding someone changes no position or ranking.
+    const rows = useMemo(
+        () => results.filter(({ person }) => isVisible(person)),
+        [results, isVisible]
+    );
 
     if (eventIds.length === 0) {
         return (
@@ -27,14 +32,14 @@ export default function SumOfRanksView() {
     return (
         <div className="flex flex-col gap-4">
             <p className="text-text-muted text-sm">
-                {plural(results.length, "competitor")}, {plural(eventIds.length, "event")}. The
+                {plural(rows.length, "competitor")}, {plural(eventIds.length, "event")}. The
                 columns after the sum are the ranking counted in each event. A dimmed one was not
                 competed in and counts as one place behind the last competitor of the first round,
                 or ties with them when they did not solve either. Each competitor's ranking is from
                 the last round they reached.
             </p>
             <StatsTable
-                rows={results}
+                rows={rows}
                 columns={columns}
                 rowKey={({ person }) => person.registrantId}
                 initialSort={{ key: "sum", dir: "asc" }}

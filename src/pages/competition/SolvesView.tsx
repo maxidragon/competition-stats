@@ -41,8 +41,11 @@ const COLUMNS: Column<SolvesRow>[] = [
 
 /** Attempted and completed solves of every accepted competitor. */
 export default function SolvesView() {
-    const { wcif } = useCompetition();
-    const rows = useMemo(() => solvesRows(wcif), [wcif]);
+    const { wcif, isVisible } = useCompetition();
+    const rows = useMemo(
+        () => solvesRows(wcif).filter(({ person }) => isVisible(person)),
+        [wcif, isVisible]
+    );
 
     return (
         <StatsTable
